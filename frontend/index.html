@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Excel Mapping Wizard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Excel Mapping Wizard</h2>
+<input type="file" id="fileInput">
+
+<table id="grid"></table>
+
+<ul id="menu" class="context-menu">
+  <li onclick="tagCell('FROM_KEYWORD')">Mark FROM keyword</li>
+  <li onclick="tagCell('UNTIL_KEYWORD')">Mark UNTIL keyword</li>
+  <li onclick="tagCell('START_DATA')">Start Data</li>
+  <li onclick="tagCell('END_DATA')">End Data</li>
+</ul>
+
+<button onclick="compileTemplate()">Compile Template</button>
+
+<pre id="output"></pre>
+
+<script src="app.js"></script>
+</body>
+</html>
