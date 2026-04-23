@@ -1,7 +1,0 @@
-personal info ,,,,,,
-DOB,,,address,,,
-day,month,year,street,city,country,
-1,jan,2026,,,asd,"{dob : [day, month, year ] , { values : [{1,jan, 2026}, {3,feb,2026},{5,august,2020}}"
-3,feb,2026,,,sdf,
-5,august,2020,,,ggds,
-,,,,,,"personal_info:{dob : [day, month, year ] , { values : [{1,jan, 2026}, {3,feb,2026},{5,august,2020}}"
