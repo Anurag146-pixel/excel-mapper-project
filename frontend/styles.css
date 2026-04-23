@@ -1,0 +1,25 @@
+table {
+  border-collapse: collapse;
+}
+td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid black;
+  display: none;
+  list-style: none;
+  padding: 0;
+}
+
+.context-menu li {
+  padding: 6px;
+  cursor: pointer;
+}
+.context-menu li:hover {
+  background: #eee;
+}
