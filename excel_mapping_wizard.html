@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Mapping Wizard - Tabbed Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        /* TABS STYLING */
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 3px solid #667eea;
+        }
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            color: #666;
+            background: #f5f5f5;
+            transition: all 0.3s;
+            border-right: 1px solid #ddd;
+        }
+        .tab:last-child { border-right: none; }
+        .tab:hover { background: #eeeeee; }
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid white;
+            margin-bottom: -3px;
+        }
+        .tab-content { display: none; padding: 30px; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        h2 { color: #333; border-bottom: 3px solid #667eea; padding-bottom: 15px; margin-bottom: 25px; }
+        h3 { color: #555; margin-top: 30px; padding: 10px; background: #f0f0f0; border-left: 5px solid #667eea; }
+        
+        .file-section {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 2px solid #4CAF50;
+        }
+        .file-section input[type="file"] {
+            padding: 10px; border: 2px solid #4CAF50; border-radius: 6px;
+            background: white; cursor: pointer; font-size: 14px;
+        }
+        .file-info { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; font-weight: bold; color: #2e7d32; }
+        
+        label { display: inline-block; margin-right: 10px; font-weight: 600; color: #555; }
+        input[type="text"], input[type="number"], select {
+            padding: 8px; margin: 5px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;
+        }
+        input[type="number"] { width: 70px; }
+        input[type="text"] { width: 250px; }
+        select { min-width: 200px; padding: 10px; font-size: 14px; }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 10px 20px; margin: 5px; border: none;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .extract-btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); font-size: 16px; padding: 12px 30px; }
+        .extract-btn:hover { box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4); }
+        .save-btn { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); font-size: 16px; padding: 12px 30px; }
+        .save-btn:hover { box-shadow: 0 5px 15px rgba(56, 239, 125, 0.4); }
+        
+        textarea {
+            width: 100%; font-family: 'Courier New', monospace; border: 2px solid #ddd;
+            border-radius: 6px; padding: 15px; background-color: #f9f9f9; font-size: 13px; box-sizing: border-box;
+        }
+        hr { margin: 40px 0; border: none; border-top: 3px solid #e0e0e0; }
+        
+        .section-box { background: #fff8e1; padding: 20px; border-left: 5px solid #ffc107; margin: 15px 0; border-radius: 4px; }
+        .group-box { background: #e3f2fd; padding: 20px; border-left: 5px solid #2196F3; margin: 15px 0; border-radius: 4px; }
+        .extraction-box { background: #f3e5f5; padding: 20px; border-left: 5px solid #9c27b0; margin: 15px 0; border-radius: 4px; }
+        
+        .result-section {
+            background: #e8f5e9; padding: 25px; border-radius: 8px; margin-top: 30px; border: 3px solid #4CAF50;
+        }
+        .result-section h3 {
+            background: #4CAF50; color: white; margin: -25px -25px 20px -25px;
+            padding: 15px 25px; border-radius: 5px 5px 0 0;
+        }
+        
+        .sheet-preview {
+            background: white; padding: 15px; border-radius: 4px; margin: 15px 0;
+            max-height: 400px; overflow: auto; border: 1px solid #ddd;
+        }
+        table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        table th, table td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        table th { background: #667eea; color: white; font-weight: bold; }
+        table tr:nth-child(even) { background: #f9f9f9; }
+        
+        .btn-group { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+        .alert { padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .alert-info { background: #e3f2fd; border-left: 5px solid #2196F3; color: #1565c0; }
+        .alert-success { background: #e8f5e9; border-left: 5px solid #4CAF50; color: #2e7d32; }
+        .alert-warning { background: #fff3e0; border-left: 5px solid #ff9800; color: #e65100; }
+        .alert-error { background: #ffebee; border-left: 5px solid #f44336; color: #c62828; }
+        
+        .offset-group {
+            display: inline-block; margin: 10px 5px; padding: 12px;
+            background: #fff9c4; border-radius: 6px; border: 1px solid #fdd835;
+        }
+        .section-list { background: white; padding: 15px; border-radius: 4px; margin: 15px 0; border: 2px solid #ddd; }
+        .section-item {
+            padding: 10px; margin: 5px 0; background: #f5f5f5; border-left: 4px solid #667eea;
+            border-radius: 4px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .section-item:hover { background: #eeeeee; }
+        .delete-btn { background: #f44336; padding: 5px 10px; font-size: 12px; }
+        .delete-btn:hover { background: #d32f2f; }
+        
+        .template-display {
+            background: #fafafa; padding: 15px; border-radius: 6px; border: 2px dashed #999;
+            margin: 15px 0; font-family: 'Courier New', monospace; font-size: 12px;
+            max-height: 200px; overflow: auto;
+        }
+        .template-selector { background: white; padding: 20px; border-radius: 8px; border: 2px solid #667eea; margin: 20px 0; }
+        .template-info { background: #e3f2fd; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 5px solid #2196F3; }
+
+        /* ── Named Template Save Box ── */
+        .named-template-box {
+            background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+            padding: 25px; border-left: 5px solid #e91e63;
+            border-radius: 8px; margin: 20px 0;
+        }
+        .named-template-box h3 { background: #e91e63; color: white; border: none; }
+
+        /* ── Saved Templates Manager ── */
+        .saved-template-item {
+            padding: 12px 15px; margin: 8px 0;
+            background: white; border-left: 5px solid #667eea;
+            border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .saved-template-item .meta { font-size: 12px; color: #888; margin-top: 4px; }
+
+        /* ── Template preview in extraction tab ── */
+        .template-preview-tree {
+            background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px;
+            padding: 14px; font-family: 'Courier New', monospace; font-size: 12px;
+            max-height: 260px; overflow: auto; margin-top: 12px;
+        }
+        .tree-group { color: #1565c0; font-weight: bold; margin: 6px 0 2px 0; }
+        .tree-section { color: #333; margin: 2px 0 2px 20px; }
+        .tree-section::before { content: "↳ "; color: #9c27b0; }
+        .standalone-section { color: #2e7d32; margin: 4px 0; }
+        .standalone-section::before { content: "§ "; }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- TABS -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('template')">📝 Template Creation</div>
+        <div class="tab" onclick="switchTab('extraction')">🚀 Data Extraction</div>
+    </div>
+
+    <!-- =====================================================
+         TAB 1: TEMPLATE CREATION
+         ===================================================== -->
+    <div id="template-tab" class="tab-content active">
+        
+        <h2>📝 Template Creation</h2>
+
+        <div class="alert alert-info">
+            <strong>📌 Workflow:</strong>
+            <ol style="margin: 10px 0 0 20px;">
+                <li>Upload a reference Excel file (optional — helps you see row numbers)</li>
+                <li>Define Sections (each section describes a region to extract)</li>
+                <li>Create Groups (bundle sections together)</li>
+                <li>Give the whole config a <strong>Template Name</strong> and save it</li>
+                <li>Switch to the Extraction tab to use saved templates</li>
+            </ol>
+        </div>
+
+        <!-- FILE BROWSER -->
+        <div class="file-section">
+            <h3 style="margin-top:0;background:none;border:none;padding:0;">📁 Upload Reference Excel File (MANDATORY)</h3>
+            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect()">
+            <div id="fileInfo" class="file-info"></div>
+            <div id="sheetPreview" class="sheet-preview" style="display:none;">
+                <h4>📋 Sheet Preview (First 20 rows with row numbers):</h4>
+                <div id="previewTable"></div>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- SECTION CONFIGURATION -->
+        <div class="section-box">
+            <h3>📋 Step 1 — Define Sections</h3>
+
+            <div>
+                <label><b>Section Name:</b></label>
+                <input type="text" id="section_name" placeholder="e.g., Revenue_Section">
+            </div><br>
+
+            <div>
+                <label><b>FROM Keyword:</b></label>
+                <input type="text" id="from_keyword" placeholder="Text to find where section starts">
+                <input type="checkbox" id="from_exact_match">
+                <label>Exact Match (including spaces)</label>
+            </div><br>
+
+            <div class="offset-group">
+                <label><b>⬇️ Skip from FROM keyword:</b></label><br>
+                <label>Rows:</label><input type="number" id="skip_rows" value="1">
+                <label>Columns:</label><input type="number" id="skip_cols" value="0">
+            </div><br><br>
+
+            <div>
+                <label><b>Extract up to:</b></label>
+                <label>Rows:</label><input type="number" id="until_rows" value="0" placeholder="0 = until keyword or end">
+                <label>Columns:</label><input type="number" id="until_cols" value="0" placeholder="0 = all columns">
+            </div><br>
+
+            <div>
+                <label><b>UNTIL Keyword:</b></label>
+                <input type="text" id="until_keyword" placeholder="Text where section ends (optional)">
+                <input type="checkbox" id="until_exact_match">
+                <label>Exact Match (including spaces)</label>
+            </div><br>
+
+            <div class="offset-group">
+                <label><b>⬇️ Skip from UNTIL keyword:</b></label><br>
+                <label>Rows:</label><input type="number" id="until_skip_rows" value="0">
+                <label>Columns:</label><input type="number" id="until_skip_cols" value="0">
+            </div><br><br>
+
+            <div class="btn-group">
+                <button onclick="add_section()">➕ ADD Section</button>
+                <button onclick="clearSectionForm()">🗑️ Clear Form</button>
+            </div>
+
+            <div class="section-list">
+                <h4>📝 Sections Configured:</h4>
+                <div id="sectionsList"></div>
+            </div>
+
+            <div class="template-display">
+                <strong>Current Sections JSON:</strong>
+                <pre id="templateConfig" style="margin:10px 0 0 0;white-space:pre-wrap;">No sections configured yet</pre>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- GROUP CONFIGURATION -->
+        <div class="group-box">
+            <h3>📦 Step 2 — Create Groups</h3>
+
+            <div>
+                <label><b>Group Name:</b></label>
+                <input type="text" id="group_name" placeholder="e.g., Quarterly_Data">
+                <button onclick="start_group()">▶ Start Group</button>
+            </div><br>
+
+            <div>
+                <label><b>Add Section to Group:</b></label>
+                <select id="group_section_name">
+                    <option value="">-- Select Section --</option>
+                </select>
+                <button onclick="insert_section()">➕ Insert Section</button>
+            </div><br>
+
+            <div class="section-list">
+                <h4>📝 Sections in Current Group:</h4>
+                <div id="groupSectionsList"></div>
+            </div><br>
+
+            <div>
+                <label><b>END Group at:</b></label>
+                <label>Rows:</label><input type="number" id="end_rows" value="0">
+                <label>Columns:</label><input type="number" id="end_cols" value="0">
+            </div><br>
+
+            <div>
+                <label><b>End Keyword:</b></label>
+                <input type="text" id="end_group_keyword" placeholder="e.g., END">
+                <input type="checkbox" id="end_exact_match">
+                <label>Exact Match</label>
+            </div><br><br>
+
+            <button onclick="add_group()">✅ FINALIZE GROUP</button>
+
+            <div class="template-display">
+                <strong>Groups Configured:</strong>
+                <pre id="groupConfig" style="margin:10px 0 0 0;white-space:pre-wrap;">No groups configured yet</pre>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- NAMED TEMPLATE SAVE -->
+        <div class="named-template-box">
+            <h3 style="margin-top:0;background:#e91e63;color:white;padding:10px 15px;border-radius:6px;">
+                🏷️ Step 3 — Save as Named Template
+            </h3>
+
+            <p style="color:#555;margin-top:15px;">
+                Give this entire configuration (all sections + groups) a name. This named template will appear in the Extraction tab dropdown.
+            </p>
+
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:15px 0;">
+                <label><b>Template Name:</b></label>
+                <input type="text" id="template_name_input" placeholder="e.g., Q3_Financial_Report" style="width:300px;">
+                <button onclick="saveNamedTemplate()" style="background:linear-gradient(135deg,#e91e63 0%,#880e4f 100%);font-size:15px;padding:11px 24px;">
+                    💾 SAVE NAMED TEMPLATE
+                </button>
+            </div>
+
+            <div id="templateSaveStatus" class="alert alert-info" style="display:none;"></div>
+        </div>
+
+        <!-- SAVED TEMPLATES LIST -->
+        <div class="result-section" style="margin-top:20px;">
+            <h3>📚 All Saved Templates</h3>
+            <div id="savedTemplatesList"></div>
+            <div class="btn-group" style="margin-top:15px;">
+                <button onclick="downloadAllTemplates()">📥 Download All Templates JSON</button>
+                <button onclick="resetWorkspace()" style="background:linear-gradient(135deg,#f44336 0%,#b71c1c 100%);">🔄 Reset Workspace</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         TAB 2: DATA EXTRACTION
+         ===================================================== -->
+    <div id="extraction-tab" class="tab-content">
+        
+        <h2>🚀 Data Extraction</h2>
+
+        <div class="alert alert-info">
+            <strong>📌 How to use:</strong>
+            <ol style="margin:10px 0 0 20px;">
+                <li>Upload the Excel file you want to extract data from</li>
+                <li>Select a saved named template from the dropdown</li>
+                <li>Click Extract — all groups and their sections will be processed</li>
+                <li>Download the resulting JSON</li>
+            </ol>
+        </div>
+
+        <!-- FILE UPLOAD -->
+        <div class="file-section">
+            <h3 style="margin-top:0;background:none;border:none;padding:0;">📁 Upload Excel File to Extract</h3>
+            <input type="file" id="extractionFile" accept=".xlsx,.xls,.csv" onchange="handleExtractionFileSelect()">
+            <div id="extractionFileInfo" class="file-info"></div>
+        </div>
+
+        <hr>
+
+        <!-- TEMPLATE SELECTION — single unified dropdown -->
+        <div class="extraction-box">
+            <h3>🎯 Select Saved Template</h3>
+
+            <div class="template-selector">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <label><b>Template:</b></label>
+                    <select id="extraction_template_select" onchange="updateTemplatePreview()" style="min-width:300px;">
+                        <option value="">-- Select a Saved Template --</option>
+                    </select>
+                    <button onclick="refreshExtractionDropdown()" style="padding:8px 14px;font-size:13px;">🔄 Refresh</button>
+                </div>
+
+                <!-- Tree preview of selected template -->
+                <div id="templatePreviewBox" style="display:none;margin-top:15px;">
+                    <strong style="color:#555;">Template Structure:</strong>
+                    <div id="templatePreviewTree" class="template-preview-tree"></div>
+                </div>
+
+                <br>
+                <button class="extract-btn" onclick="extractByNamedTemplate()">🚀 EXTRACT DATA</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- EXTRACTION RESULTS -->
+        <div class="result-section">
+            <h3>📤 Extracted Data</h3>
+            <div class="btn-group">
+                <button class="save-btn" onclick="saveExtractedData()">💾 SAVE AS JSON FILE</button>
+                <button onclick="copyExtractedData()">📋 Copy to Clipboard</button>
+            </div>
+            <div id="extractionStatus" class="alert alert-warning" style="display:none;"></div>
+            <h4>📊 Extracted JSON Data:</h4>
+            <textarea id="extraction_output" rows="28" placeholder="Extracted data will appear here after you click EXTRACT DATA..."></textarea>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+// =====================================================
+// GLOBAL STATE
+// =====================================================
+
+var selectedFile = null;
+var workbook = null;
+var worksheet = null;
+var sheetData = [];
+
+// Template Tab Data
+var outputJSON = { sections: [] };          // sections built so far in this session
+var sectionNameRegistry = [];               // names list for group dropdown
+var groupJSON = { group_name: "", sections: [], end_group: {} };
+var allGroups = [];                         // groups built in this session
+
+// Extraction Tab
+var extractionWorkbook = null;
+var extractionSheetData = [];
+var extractionFile = null;
+var extractedData = null;
+
+// =====================================================
+// STORAGE HELPERS
+// =====================================================
+
+var STORAGE_KEY = 'excel_named_templates_v2';
+
+function loadAllNamedTemplates() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch(e) { return []; }
+}
+
+function saveAllNamedTemplates(templates) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+}
+
+// =====================================================
+// TAB SWITCHING
+// =====================================================
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+    if (tabName === 'template') {
+        document.getElementById('template-tab').classList.add('active');
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        renderSavedTemplatesList();
+    } else {
+        document.getElementById('extraction-tab').classList.add('active');
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        refreshExtractionDropdown();
+    }
+}
+
+// =====================================================
+// TEMPLATE TAB — FILE HANDLING
+// =====================================================
+
+function handleFileSelect() {
+    const fi = document.getElementById('excelFile');
+    const info = document.getElementById('fileInfo');
+    if (fi.files.length > 0) {
+        selectedFile = fi.files[0];
+        info.innerHTML = `✅ Selected: <strong>${selectedFile.name}</strong> (${(selectedFile.size/1024).toFixed(2)} KB)`;
+        readExcelFile(selectedFile);
+    } else {
+        selectedFile = null;
+        info.innerHTML = '';
+        document.getElementById('sheetPreview').style.display = 'none';
+    }
+}
+
+function readExcelFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        workbook = XLSX.read(data, { type: 'array' });
+        const ws = workbook.Sheets[workbook.SheetNames[0]];
+        sheetData = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:false });
+        showSheetPreview();
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function showSheetPreview() {
+    const preview = document.getElementById('sheetPreview');
+    const previewTable = document.getElementById('previewTable');
+    if (sheetData.length === 0) { preview.style.display = 'none'; return; }
+
+    let html = '<table><tr><th>Row#</th>';
+    const maxCols = Math.max(...sheetData.slice(0,20).map(r => r.length));
+    for (let c = 0; c < Math.min(15, maxCols); c++) html += `<th>Col ${c}</th>`;
+    html += '</tr>';
+
+    for (let i = 0; i < Math.min(20, sheetData.length); i++) {
+        html += `<tr><td style="background:#667eea;color:white;font-weight:bold;">${i}</td>`;
+        for (let j = 0; j < Math.min(15, maxCols); j++) html += `<td>${sheetData[i][j] || ''}</td>`;
+        html += '</tr>';
+    }
+    html += '</table>';
+    previewTable.innerHTML = html;
+    preview.style.display = 'block';
+}
+
+// =====================================================
+// TEMPLATE TAB — SECTION CONFIGURATION
+// =====================================================
+
+function add_section() {
+    const name = document.getElementById("section_name").value.trim();
+    if (!name) { alert("❌ Please enter a section name!"); return; }
+    const fromKeyword = document.getElementById("from_keyword").value.trim();
+    if (!fromKeyword) { alert("❌ Please enter a FROM keyword!"); return; }
+
+    const section = {
+        section_name: name,
+        data: {
+            from_keyword: fromKeyword,
+            including_spaces1: document.getElementById("from_exact_match").checked ? "1" : "0",
+            skip_rows: Number(document.getElementById("skip_rows").value),
+            skip_cols: Number(document.getElementById("skip_cols").value)
+        },
+        end_section: {
+            extract_upto_rows: Number(document.getElementById("until_rows").value),
+            extract_upto_columns: Number(document.getElementById("until_cols").value),
+            until_keyword: document.getElementById("until_keyword").value.trim(),
+            including_spaces: document.getElementById("until_exact_match").checked ? "1" : "0",
+            until_skip_rows: Number(document.getElementById("until_skip_rows").value),
+            until_skip_cols: Number(document.getElementById("until_skip_cols").value)
+        }
+    };
+
+    outputJSON.sections.push(section);
+    if (!sectionNameRegistry.includes(name)) sectionNameRegistry.push(name);
+    updateSectionsList();
+    updateTemplateConfig();
+    refreshSectionDropdown();
+    clearSectionForm();
+}
+
+function updateSectionsList() {
+    const list = document.getElementById('sectionsList');
+    if (outputJSON.sections.length === 0) {
+        list.innerHTML = '<p style="color:#999;font-style:italic;">No sections added yet</p>';
+        return;
+    }
+    list.innerHTML = outputJSON.sections.map((s, i) => `
+        <div class="section-item">
+            <span><strong>${s.section_name}</strong> — FROM: "${s.data.from_keyword}"</span>
+            <button class="delete-btn" onclick="deleteSection(${i})">🗑️ Delete</button>
+        </div>`).join('');
+}
+
+function updateTemplateConfig() {
+    const pre = document.getElementById('templateConfig');
+    pre.textContent = outputJSON.sections.length === 0
+        ? 'No sections configured yet'
+        : JSON.stringify(outputJSON, null, 2);
+}
+
+function deleteSection(index) {
+    const name = outputJSON.sections[index].section_name;
+    outputJSON.sections.splice(index, 1);
+    const ri = sectionNameRegistry.indexOf(name);
+    if (ri > -1) sectionNameRegistry.splice(ri, 1);
+    updateSectionsList(); updateTemplateConfig(); refreshSectionDropdown();
+}
+
+function clearSectionForm() {
+    ['section_name','from_keyword','until_keyword','end_group_keyword'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById("from_exact_match").checked = false;
+    document.getElementById("skip_rows").value = '1';
+    document.getElementById("skip_cols").value = '0';
+    document.getElementById("until_rows").value = '0';
+    document.getElementById("until_cols").value = '0';
+    document.getElementById("until_exact_match").checked = false;
+    document.getElementById("until_skip_rows").value = '0';
+    document.getElementById("until_skip_cols").value = '0';
+}
+
+// =====================================================
+// TEMPLATE TAB — GROUP CONFIGURATION
+// =====================================================
+
+function refreshSectionDropdown() {
+    const dd = document.getElementById("group_section_name");
+    dd.innerHTML = '<option value="">-- Select Section --</option>';
+    sectionNameRegistry.forEach(s => {
+        const o = document.createElement("option");
+        o.value = s; o.textContent = s;
+        dd.appendChild(o);
+    });
+}
+
+function start_group() {
+    const g = document.getElementById("group_name").value.trim();
+    if (!g) { alert("❌ Please enter a group name!"); return; }
+    groupJSON = { group_name: g, sections: [], end_group: {} };
+    if (!groupRegistry) groupRegistry = [];
+    refreshSectionDropdown();
+    updateGroupSectionsList();
+}
+
+var groupRegistry = [];
+
+function insert_section() {
+    const sec = document.getElementById("group_section_name").value;
+    if (!sec) { alert("❌ Please select a section!"); return; }
+    if (!groupJSON.group_name) { alert("❌ Please start a group first!"); return; }
+    groupJSON.sections.push({ section_name: sec });
+    updateGroupSectionsList();
+}
+
+function updateGroupSectionsList() {
+    const list = document.getElementById('groupSectionsList');
+    if (!groupJSON.group_name) {
+        list.innerHTML = '<p style="color:#999;font-style:italic;">Start a group first</p>';
+        return;
+    }
+    if (groupJSON.sections.length === 0) {
+        list.innerHTML = `<p style="color:#999;font-style:italic;">Group: <strong>${groupJSON.group_name}</strong> — no sections yet</p>`;
+        return;
+    }
+    list.innerHTML = `<strong>Group: ${groupJSON.group_name}</strong><br><br>` +
+        groupJSON.sections.map((s, i) => `
+            <div class="section-item">
+                <span>${i+1}. ${s.section_name}</span>
+                <button class="delete-btn" onclick="removeFromGroup(${i})">🗑️ Remove</button>
+            </div>`).join('');
+}
+
+function removeFromGroup(index) {
+    groupJSON.sections.splice(index, 1);
+    updateGroupSectionsList();
+}
+
+function add_group() {
+    if (!groupJSON.group_name) { alert("❌ Please start a group first!"); return; }
+    if (groupJSON.sections.length === 0) { alert("❌ Please add at least one section!"); return; }
+
+    groupJSON.end_group = {
+        rows: Number(document.getElementById("end_rows").value),
+        columns: Number(document.getElementById("end_cols").value),
+        end_keyword: document.getElementById("end_group_keyword").value.trim(),
+        including_spaces: document.getElementById("end_exact_match").checked ? "1" : "0"
+    };
+
+    allGroups.push(JSON.parse(JSON.stringify(groupJSON)));
+    updateGroupConfig();
+    alert(`✅ Group '${groupJSON.group_name}' finalized!`);
+
+    groupJSON = { group_name: "", sections: [], end_group: {} };
+    document.getElementById("group_name").value = '';
+    document.getElementById("end_rows").value = '0';
+    document.getElementById("end_cols").value = '0';
+    document.getElementById("end_group_keyword").value = '';
+    document.getElementById("end_exact_match").checked = false;
+    updateGroupSectionsList();
+}
+
+function updateGroupConfig() {
+    const pre = document.getElementById('groupConfig');
+    pre.textContent = allGroups.length === 0
+        ? 'No groups configured yet'
+        : JSON.stringify({ groups: allGroups }, null, 2);
+}
+
+// =====================================================
+// TEMPLATE TAB — SAVE NAMED TEMPLATE
+// =====================================================
+
+function saveNamedTemplate() {
+    const statusDiv = document.getElementById('templateSaveStatus');
+    const tName = document.getElementById('template_name_input').value.trim();
+
+    if (!tName) {
+        statusDiv.innerHTML = '❌ Please enter a template name!';
+        statusDiv.className = 'alert alert-error';
+        statusDiv.style.display = 'block';
+        return;
+    }
+    if (outputJSON.sections.length === 0 && allGroups.length === 0) {
+        statusDiv.innerHTML = '❌ Please create at least one section or group before saving!';
+        statusDiv.className = 'alert alert-error';
+        statusDiv.style.display = 'block';
+        return;
+    }
+
+    const templates = loadAllNamedTemplates();
+
+    // Check for duplicate name
+    const existingIdx = templates.findIndex(t => t.template_name === tName);
+    const newTemplate = {
+        template_name: tName,
+        created_date: new Date().toISOString(),
+        sections: JSON.parse(JSON.stringify(outputJSON.sections)),
+        groups: JSON.parse(JSON.stringify(allGroups))
+    };
+
+    if (existingIdx > -1) {
+        if (!confirm(`⚠️ Template "${tName}" already exists. Overwrite it?`)) return;
+        templates[existingIdx] = newTemplate;
+    } else {
+        templates.push(newTemplate);
+    }
+
+    saveAllNamedTemplates(templates);
+
+    statusDiv.innerHTML = `✅ Template "<strong>${tName}</strong>" saved! (${outputJSON.sections.length} sections, ${allGroups.length} groups)`;
+    statusDiv.className = 'alert alert-success';
+    statusDiv.style.display = 'block';
+    setTimeout(() => { statusDiv.style.display = 'none'; }, 4000);
+
+    renderSavedTemplatesList();
+}
+
+function renderSavedTemplatesList() {
+    const container = document.getElementById('savedTemplatesList');
+    const templates = loadAllNamedTemplates();
+
+    if (templates.length === 0) {
+        container.innerHTML = '<p style="color:#999;font-style:italic;">No templates saved yet. Create sections/groups above, then save.</p>';
+        return;
+    }
+
+    container.innerHTML = templates.map((t, i) => `
+        <div class="saved-template-item">
+            <div>
+                <strong>🏷️ ${t.template_name}</strong>
+                <div class="meta">
+                    ${t.sections.length} standalone section(s) &nbsp;|&nbsp;
+                    ${t.groups.length} group(s) &nbsp;|&nbsp;
+                    Saved: ${new Date(t.created_date).toLocaleString()}
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="loadTemplateIntoWorkspace(${i})" style="background:linear-gradient(135deg,#2196F3 0%,#0d47a1 100%);padding:6px 12px;font-size:12px;">📂 Load</button>
+                <button onclick="deleteNamedTemplate(${i})" class="delete-btn">🗑️ Delete</button>
+            </div>
+        </div>`).join('');
+}
+
+function deleteNamedTemplate(index) {
+    const templates = loadAllNamedTemplates();
+    if (!confirm(`Delete template "${templates[index].template_name}"?`)) return;
+    templates.splice(index, 1);
+    saveAllNamedTemplates(templates);
+    renderSavedTemplatesList();
+}
+
+function loadTemplateIntoWorkspace(index) {
+    const templates = loadAllNamedTemplates();
+    const t = templates[index];
+    if (!confirm(`Load template "${t.template_name}"? This will replace your current workspace sections and groups.`)) return;
+
+    outputJSON.sections = JSON.parse(JSON.stringify(t.sections));
+    allGroups = JSON.parse(JSON.stringify(t.groups));
+    sectionNameRegistry = outputJSON.sections.map(s => s.section_name);
+    document.getElementById('template_name_input').value = t.template_name;
+
+    updateSectionsList();
+    updateTemplateConfig();
+    updateGroupConfig();
+    refreshSectionDropdown();
+
+    alert(`✅ Template "${t.template_name}" loaded into workspace!`);
+}
+
+function downloadAllTemplates() {
+    const templates = loadAllNamedTemplates();
+    if (templates.length === 0) { alert("❌ No templates to download!"); return; }
+    const blob = new Blob([JSON.stringify({ templates }, null, 4)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `excel_templates_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function resetWorkspace() {
+    if (!confirm("⚠️ Reset current workspace? (Saved templates in storage are NOT deleted)")) return;
+    outputJSON = { sections: [] };
+    sectionNameRegistry = [];
+    groupRegistry = [];
+    allGroups = [];
+    groupJSON = { group_name: "", sections: [], end_group: {} };
+    document.getElementById('template_name_input').value = '';
+    updateSectionsList(); updateTemplateConfig();
+    updateGroupSectionsList(); updateGroupConfig();
+    refreshSectionDropdown();
+}
+
+// =====================================================
+// EXTRACTION TAB — FILE HANDLING
+// =====================================================
+
+function handleExtractionFileSelect() {
+    const fi = document.getElementById('extractionFile');
+    const info = document.getElementById('extractionFileInfo');
+    if (fi.files.length > 0) {
+        extractionFile = fi.files[0];
+        info.innerHTML = `✅ Selected: <strong>${extractionFile.name}</strong> (${(extractionFile.size/1024).toFixed(2)} KB)`;
+        readExtractionFile(extractionFile);
+    } else {
+        extractionFile = null;
+        extractionSheetData = [];
+        info.innerHTML = '';
+    }
+}
+
+function readExtractionFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        extractionWorkbook = XLSX.read(data, { type: 'array' });
+        const ws = extractionWorkbook.Sheets[extractionWorkbook.SheetNames[0]];
+        extractionSheetData = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:false });
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// =====================================================
+// EXTRACTION TAB — TEMPLATE DROPDOWN
+// =====================================================
+
+function refreshExtractionDropdown() {
+    const select = document.getElementById('extraction_template_select');
+    const templates = loadAllNamedTemplates();
+
+    select.innerHTML = '<option value="">-- Select a Saved Template --</option>';
+    templates.forEach((t, i) => {
+        const o = document.createElement('option');
+        o.value = i;
+        o.textContent = `🏷️ ${t.template_name}  (${t.groups.length} group(s), ${t.sections.length} section(s))`;
+        select.appendChild(o);
+    });
+
+    // Reset preview
+    document.getElementById('templatePreviewBox').style.display = 'none';
+}
+
+function updateTemplatePreview() {
+    const select = document.getElementById('extraction_template_select');
+    const previewBox = document.getElementById('templatePreviewBox');
+    const previewTree = document.getElementById('templatePreviewTree');
+
+    if (select.value === '') {
+        previewBox.style.display = 'none';
+        return;
+    }
+
+    const templates = loadAllNamedTemplates();
+    const t = templates[parseInt(select.value)];
+
+    let html = '';
+
+    // Groups with their nested sections
+    t.groups.forEach(g => {
+        html += `<div class="tree-group">📦 ${g.group_name}</div>`;
+        g.sections.forEach(s => {
+            // Find the section config to show from keyword
+            const sec = t.sections.find(sec => sec.section_name === s.section_name);
+            const fromKw = sec ? ` <span style="color:#888;font-size:11px;">(FROM: "${sec.data.from_keyword}")</span>` : '';
+            html += `<div class="tree-section">${s.section_name}${fromKw}</div>`;
+        });
+    });
+
+    // Standalone sections (not referenced by any group)
+    const groupedSectionNames = t.groups.flatMap(g => g.sections.map(s => s.section_name));
+    const standalone = t.sections.filter(s => !groupedSectionNames.includes(s.section_name));
+    if (standalone.length > 0) {
+        html += `<div style="margin-top:8px;color:#666;font-size:11px;">── Standalone Sections ──</div>`;
+        standalone.forEach(s => {
+            html += `<div class="standalone-section">${s.section_name} <span style="color:#888;font-size:11px;">(FROM: "${s.data.from_keyword}")</span></div>`;
+        });
+    }
+
+    previewTree.innerHTML = html || '<span style="color:#999;">No sections or groups defined in this template.</span>';
+    previewBox.style.display = 'block';
+}
+
+// =====================================================
+// EXTRACTION TAB — CORE EXTRACTION
+// =====================================================
+
+function findKeywordInSheet(keyword, exactMatch, data) {
+    if (!keyword) return null;
+    for (let r = 0; r < data.length; r++) {
+        for (let c = 0; c < data[r].length; c++) {
+            const cell = String(data[r][c] || '').trim();
+            if (exactMatch ? cell === keyword.trim() : cell.includes(keyword)) {
+                return { row: r, col: c };
+            }
+        }
+    }
+    return null;
+}
+
+function extractSectionData(section, data) {
+    const { data: cfg, end_section } = section;
+
+    const fromPos = findKeywordInSheet(cfg.from_keyword, cfg.including_spaces1 === "1", data);
+    if (!fromPos) {
+        return { section_name: section.section_name, error: `FROM keyword "${cfg.from_keyword}" not found`, data: [] };
+    }
+
+    let startRow = fromPos.row + parseInt(cfg.skip_rows || 0);
+    let startCol = fromPos.col + parseInt(cfg.skip_cols || 0);
+    let endRow = data.length;
+    let endCol = data[startRow] ? data[startRow].length : 0;
+
+    if (end_section && end_section.until_keyword) {
+        const untilPos = findKeywordInSheet(end_section.until_keyword, end_section.including_spaces === "1", data);
+        if (untilPos) {
+            endRow = untilPos.row - parseInt(end_section.until_skip_rows || 0);
+            endCol = untilPos.col - parseInt(end_section.until_skip_cols || 0);
+        }
+    }
+    if (end_section && end_section.extract_upto_rows > 0)
+        endRow = Math.min(endRow, startRow + end_section.extract_upto_rows);
+    if (end_section && end_section.extract_upto_columns > 0)
+        endCol = Math.min(endCol, startCol + end_section.extract_upto_columns);
+
+    const extracted = [];
+    for (let r = startRow; r < endRow && r < data.length; r++) {
+        const rowData = [];
+        for (let c = startCol; c < endCol && c < (data[r] ? data[r].length : 0); c++) {
+            rowData.push(data[r][c] || '');
+        }
+        if (rowData.length > 0) extracted.push(rowData);
+    }
+
+    return { section_name: section.section_name, data: extracted };
+}
+
+// =====================================================
+// EXTRACTION TAB — EXTRACT BY NAMED TEMPLATE
+// =====================================================
+
+function extractByNamedTemplate() {
+    const statusDiv = document.getElementById('extractionStatus');
+    const outputArea = document.getElementById('extraction_output');
+    const select = document.getElementById('extraction_template_select');
+
+    // Validate file
+    if (!extractionFile || extractionSheetData.length === 0) {
+        statusDiv.innerHTML = '❌ Please upload an Excel file first!';
+        statusDiv.className = 'alert alert-error';
+        statusDiv.style.display = 'block';
+        return;
+    }
+
+    // Validate template selection
+    if (select.value === '') {
+        statusDiv.innerHTML = '❌ Please select a template!';
+        statusDiv.className = 'alert alert-error';
+        statusDiv.style.display = 'block';
+        return;
+    }
+
+    const templates = loadAllNamedTemplates();
+    const template = templates[parseInt(select.value)];
+
+    // Build lookup map: section_name → section config
+    const sectionMap = {};
+    template.sections.forEach(s => { sectionMap[s.section_name] = s; });
+
+    // Result object
+    const result = {
+        template_name: template.template_name,
+        file_name: extractionFile.name,
+        extraction_date: new Date().toISOString(),
+        groups: []
+    };
+
+    // Process each group
+    template.groups.forEach(group => {
+        const groupResult = {
+            group_name: group.group_name,
+            sections: []
+        };
+
+        group.sections.forEach(ref => {
+            const secConfig = sectionMap[ref.section_name];
+            if (secConfig) {
+                groupResult.sections.push(extractSectionData(secConfig, extractionSheetData));
+            } else {
+                groupResult.sections.push({
+                    section_name: ref.section_name,
+                    error: `Section config not found in template`,
+                    data: []
+                });
+            }
+        });
+
+        result.groups.push(groupResult);
+    });
+
+    // Also process standalone sections (not in any group)
+    const groupedNames = template.groups.flatMap(g => g.sections.map(s => s.section_name));
+    const standalones = template.sections.filter(s => !groupedNames.includes(s.section_name));
+    if (standalones.length > 0) {
+        result.standalone_sections = standalones.map(s => extractSectionData(s, extractionSheetData));
+    }
+
+    outputArea.value = JSON.stringify(result, null, 4);
+    extractedData = result;
+
+    // Count extracted rows for status
+    let totalRows = 0;
+    result.groups.forEach(g => g.sections.forEach(s => { totalRows += (s.data || []).length; }));
+    if (result.standalone_sections) result.standalone_sections.forEach(s => { totalRows += (s.data || []).length; });
+
+    statusDiv.innerHTML = `✅ Template "<strong>${template.template_name}</strong>" applied successfully! ${result.groups.length} group(s) extracted, ~${totalRows} data rows.`;
+    statusDiv.className = 'alert alert-success';
+    statusDiv.style.display = 'block';
+}
+
+// =====================================================
+// EXTRACTION TAB — SAVE / COPY
+// =====================================================
+
+function saveExtractedData() {
+    if (!extractedData) { alert("❌ No extracted data to save! Please extract first."); return; }
+    const blob = new Blob([JSON.stringify(extractedData, null, 4)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `extracted_${extractedData.template_name}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function copyExtractedData() {
+    const outputArea = document.getElementById('extraction_output');
+    if (!outputArea.value) { alert("❌ No data to copy!"); return; }
+    navigator.clipboard.writeText(outputArea.value).then(() => alert("✅ Copied to clipboard!"));
+}
+
+// =====================================================
+// INITIALIZE
+// =====================================================
+
+window.onload = function() {
+    updateSectionsList();
+    updateTemplateConfig();
+    updateGroupSectionsList();
+    updateGroupConfig();
+    refreshSectionDropdown();
+    renderSavedTemplatesList();
+    refreshExtractionDropdown();
+};
+
+</script>
+</body>
+</html>
